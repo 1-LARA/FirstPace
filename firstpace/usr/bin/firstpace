@@ -67,6 +67,17 @@ class FirstPace(Gtk.Window):
         .add-button:hover {
             background-color: #45a049;
         }
+        .plus-button {
+            font-size: 32px;
+            margin: 10px;
+            padding: 0;
+            background-color: #800080;
+            color: white;
+            border-radius: 50%;
+        }
+        .plus-button:hover {
+            background-color: #45a049;
+        }
         .delete-button {
             background-color: #f44336;
             color: white;
@@ -99,18 +110,10 @@ class FirstPace(Gtk.Window):
         self.search_entry.connect("changed", self.on_search_changed)
         vbox.pack_start(self.search_entry, False, False, 10)
         
-        # 添加任务区域
+        # 添加任务区域（顶端保留为空，实际按钮放到底部）
         add_box = Gtk.Box(spacing=6)
         vbox.pack_start(add_box, False, False, 10)
-        
-        self.new_task_entry = Gtk.Entry()
-        self.new_task_entry.set_placeholder_text("输入新任务...")
-        self.new_task_entry.connect("activate", self.on_add_task)
-        add_box.pack_start(self.new_task_entry, True, True, 0)
-        
-        add_button = Gtk.Button(label="添加")
-        add_button.connect("clicked", self.on_add_task)
-        add_box.pack_start(add_button, False, False, 0)
+        # 这里暂时不放置任何控件，按钮将在底部创建
         
         # 任务列表
         scrolled = Gtk.ScrolledWindow()
@@ -124,6 +127,18 @@ class FirstPace(Gtk.Window):
         # 底部统计
         self.stats_label = Gtk.Label()
         vbox.pack_start(self.stats_label, False, False, 5)
+        
+        # 底部“+”按钮
+        bottom_box = Gtk.Box()
+        bottom_box.set_margin_top(10)
+        bottom_box.set_halign(Gtk.Align.CENTER)
+        plus_button = Gtk.Button(label="+")
+        plus_button.set_size_request(60, 60)
+        plus_button.connect("clicked", self.on_add_task_dialog)
+        style_context = plus_button.get_style_context()
+        style_context.add_class("plus-button")
+        bottom_box.pack_start(plus_button, False, False, 0)
+        vbox.pack_end(bottom_box, False, False, 10)
         
         # 刷新显示
         self.refresh_list()
@@ -143,18 +158,40 @@ class FirstPace(Gtk.Window):
         except:
             pass
             
-    def on_add_task(self, widget):
-        text = self.new_task_entry.get_text().strip()
-        if text:
-            task = {
-                'text': text,
-                'completed': False,
-                'created': datetime.now().isoformat()
-            }
-            self.tasks.append(task)
-            self.save_tasks()
-            self.new_task_entry.set_text("")
-            self.refresh_list()
+    def on_add_task(self, widget=None):
+        # 旧的处理器，已无具体使用，保留以防回退
+        pass
+
+    def on_add_task_dialog(self, widget):
+        # 弹出一个模态对话框让用户输入新任务
+        dialog = Gtk.Dialog("添加任务", self,
+                            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT)
+        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                           Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        content = dialog.get_content_area()
+        entry = Gtk.Entry()
+        entry.set_placeholder_text("输入新任务...")
+        content.add(entry)
+        dialog.show_all()
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            text = entry.get_text().strip()
+            if text:
+                self.add_task(text)
+        dialog.destroy()
+
+    def add_task(self, text):
+        # 通用添加逻辑
+        if not text:
+            return
+        task = {
+            'text': text,
+            'completed': False,
+            'created': datetime.now().isoformat()
+        }
+        self.tasks.append(task)
+        self.save_tasks()
+        self.refresh_list()
             
     def on_search_changed(self, entry):
         self.refresh_list()
